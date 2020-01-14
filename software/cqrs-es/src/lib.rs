@@ -1,5 +1,7 @@
-use std::error::Error;
+extern crate failure;
+
 use std::fmt::Debug;
+use failure::Fail;
 
 pub trait Aggregate: Default {
     type Id: AggregateId<Self>;
@@ -14,15 +16,15 @@ pub trait Event<A: Aggregate> {
 }
 
 pub trait Command<A: Aggregate> {
-    type Events: Iterator<Item = A::Event>;
-    type Error: Error;
+    type Events: IntoIterator<Item = A::Event>;
+    type Error: Fail;
 
     fn execute_on(self, aggregate: &A) -> Result<Self::Events, Self::Error>;
 }
 
 pub trait EventStorage<A: Aggregate> {
-    type Events: Iterator<Item = A::Event>;
-    type Error: Error;
+    type Events: IntoIterator<Item = A::Event>;
+    type Error: Fail;
 
     fn insert(&self, id: A::Id, event: A::Event) -> Result<(), Self::Error>;
     fn read(&self, id: A::Id) -> Result<Self::Events, Self::Error>;

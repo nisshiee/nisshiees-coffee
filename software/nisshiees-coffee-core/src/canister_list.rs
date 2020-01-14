@@ -43,7 +43,7 @@ pub enum Name {
 impl Aggregate for CanisterListAggregate {
     type Id = CanisterListAggregateId;
     type Event = CanisterListEvent;
-    type Command = CanisterCommand;
+    type Command = CanisterListCommand;
 }
 
 impl Default for CanisterListAggregate {
@@ -74,9 +74,55 @@ impl Event<CanisterListAggregate> for CanisterListEvent {
     }
 }
 
-pub enum CanisterCommand {
+pub enum CanisterListCommand {
+    Create,
     AddCanister(Canister),
 }
 
-impl Command<CanisterListAggregate> for CanisterCommand {
+#[derive(Fail, Debug)]
+pub enum CanisterListCommandError {
+    #[fail(display = "ID duplicated")]
+    IdDuplicated,
+    #[fail(display = "Name duplicated")]
+    NameDuplicated,
+    #[fail(display = "Color duplicated")]
+    ColorDuplicated,
+    #[fail(display = "CanisterList already created")]
+    AlreadyCreated,
+    #[fail(display = "CanisterList uninitialized")]
+    Uninitialized,
+}
+
+impl Command<CanisterListAggregate> for CanisterListCommand {
+    type Events = Option<CanisterListEvent>;
+    type Error = CanisterListCommandError;
+
+    fn execute_on(self, aggregate: &CanisterListAggregate) -> Result<Self::Events, Self::Error> {
+        match self {
+            CanisterListCommand::Create => {
+                match aggregate {
+                    CanisterListAggregate::Uninitialized => Ok(Some(CanisterListEvent::Created)),
+                    _ => Err(CanisterListCommandError::AlreadyCreated)
+                }
+            }
+
+            CanisterListCommand::AddCanister(adding) => {
+                match aggregate {
+                    CanisterListAggregate::Created { canisters } => {
+                        if canisters.into_iter().any(|c| c.id == adding.id) {
+                            return Err(CanisterListCommandError::IdDuplicated)
+                        }
+                        if canisters.into_iter().any(|c| c.color == adding.color) {
+                            return Err(CanisterListCommandError::ColorDuplicated)
+                        }
+                        if canisters.into_iter().any(|c| c.name == adding.name) {
+                            return Err(CanisterListCommandError::NameDuplicated)
+                        }
+                        Ok(Some(CanisterListEvent::CanisterAdded(adding)))
+                    },
+                    _ => Err(CanisterListCommandError::Uninitialized),
+                }
+            }
+        }
+    }
 }
