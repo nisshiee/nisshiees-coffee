@@ -9,20 +9,20 @@ pub enum CanisterListAggregate {
     },
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct CanisterListAggregateId(Uuid);
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub struct CanisterListAggregateId(pub Uuid);
 
 impl AggregateId<CanisterListAggregate> for CanisterListAggregateId {}
 
 #[derive(Debug, Clone)]
 pub struct Canister {
-    id: CanisterId,
-    color: Color,
-    name: Name,
+    pub id: CanisterId,
+    pub color: Color,
+    pub name: Name,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct CanisterId(Uuid);
+pub struct CanisterId(pub Uuid);
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Color {
@@ -52,6 +52,7 @@ impl Default for CanisterListAggregate {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum CanisterListEvent {
     Created,
     CanisterAdded(Canister),
@@ -74,6 +75,7 @@ impl Event<CanisterListAggregate> for CanisterListEvent {
     }
 }
 
+#[derive(Debug)]
 pub enum CanisterListCommand {
     Create,
     AddCanister(Canister),

@@ -2,6 +2,7 @@ extern crate failure;
 
 use std::fmt::Debug;
 use failure::Fail;
+use std::hash::Hash;
 
 pub trait Aggregate: Default {
     type Id: AggregateId<Self>;
@@ -9,9 +10,9 @@ pub trait Aggregate: Default {
     type Command: Command<Self>;
 }
 
-pub trait AggregateId<A: Aggregate>: Debug + Copy + Clone + Eq + PartialEq {}
+pub trait AggregateId<A: Aggregate>: Debug + Copy + Clone + Eq + PartialEq + Hash {}
 
-pub trait Event<A: Aggregate> {
+pub trait Event<A: Aggregate>: Debug + Clone {
     fn apply_to(self, aggregate: &mut A);
 }
 
@@ -26,8 +27,17 @@ pub trait EventStorage<A: Aggregate> {
     type Events: IntoIterator<Item = A::Event>;
     type Error: Fail;
 
-    fn insert(&self, id: A::Id, event: A::Event) -> Result<(), Self::Error>;
+    fn insert(&mut self, id: A::Id, event: A::Event) -> Result<(), Self::Error>;
+
+    // FIXME: Eventsではなく&Eventsを返すことで、不要なメモリコピーを抑制できる気がする
     fn read(&self, id: A::Id) -> Result<Self::Events, Self::Error>;
+
+    fn replay_aggregate(&self, id: A::Id) -> Result<A, Self::Error> {
+        let mut aggregate = A::default();
+        let events = self.read(id)?;
+        events.into_iter().for_each(|e| e.apply_to(&mut aggregate));
+        Ok(aggregate)
+    }
 }
 
 #[cfg(test)]
