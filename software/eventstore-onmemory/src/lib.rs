@@ -8,6 +8,14 @@ pub struct OnMemoryEventStorage<A: Aggregate> {
     events: HashMap<A::Id, Vec<A::Event>>,
 }
 
+impl <A: Aggregate> OnMemoryEventStorage<A> {
+    pub fn new() -> OnMemoryEventStorage<A> {
+        OnMemoryEventStorage {
+            events: HashMap::new(),
+        }
+    }
+}
+
 #[derive(Fail, Debug)]
 pub enum OnMemoryEventStorageError {
     #[fail(display = "Unexpected error")]

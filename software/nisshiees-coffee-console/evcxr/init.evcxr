@@ -1,3 +1,1 @@
-:dep cqrs-es = { path = "../cqrs-es" }
-:dep nisshiees-coffee-core = { path = "../nisshiees-coffee-core" }
-:dep uuid = { version = "0.8.1", features = ["v4"] }
+:dep nisshiees-coffee-console = { path = "." }
