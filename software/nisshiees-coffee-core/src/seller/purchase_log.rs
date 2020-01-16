@@ -1,7 +1,7 @@
 use crate::{Brand, Gram, Roast};
 use chrono::NaiveDate;
+use cqrs_es::{Aggregate, AggregateId, Command, Event};
 use uuid::Uuid;
-use cqrs_es::{AggregateId, Aggregate, Event, Command};
 
 #[derive(Debug, Clone)]
 pub enum PurchaseLogAggregate {
@@ -44,9 +44,19 @@ pub enum PurchaseLogEvent {
 impl Event<PurchaseLogAggregate> for PurchaseLogEvent {
     fn apply_to(self, aggregate: &mut PurchaseLogAggregate) {
         match self {
-            PurchaseLogEvent::Created { brand, roast, gram, date } => {
-                *aggregate = PurchaseLogAggregate::Created { brand, roast, gram, date }
-            },
+            PurchaseLogEvent::Created {
+                brand,
+                roast,
+                gram,
+                date,
+            } => {
+                *aggregate = PurchaseLogAggregate::Created {
+                    brand,
+                    roast,
+                    gram,
+                    date,
+                }
+            }
         }
     }
 }
@@ -73,13 +83,20 @@ impl Command<PurchaseLogAggregate> for PurchaseLogCommand {
 
     fn execute_on(self, aggregate: &PurchaseLogAggregate) -> Result<Self::Events, Self::Error> {
         match self {
-            PurchaseLogCommand::Create { brand, roast, gram, date } => {
-                match aggregate {
-                    PurchaseLogAggregate::Uninitialized =>
-                        Ok(Some(PurchaseLogEvent::Created { brand, roast, gram, date})),
-                    _ => Err(PurchaseLogCommandError::AlreadyCreated),
-                }
-            }
+            PurchaseLogCommand::Create {
+                brand,
+                roast,
+                gram,
+                date,
+            } => match aggregate {
+                PurchaseLogAggregate::Uninitialized => Ok(Some(PurchaseLogEvent::Created {
+                    brand,
+                    roast,
+                    gram,
+                    date,
+                })),
+                _ => Err(PurchaseLogCommandError::AlreadyCreated),
+            },
         }
     }
 }

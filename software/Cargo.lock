@@ -108,6 +108,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "nisshiees-coffee-console"
 version = "0.1.0"
 dependencies = [
+ "chrono 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "cqrs-es 0.1.0",
  "eventstore-onmemory 0.1.0",
  "nisshiees-coffee-core 0.1.0",

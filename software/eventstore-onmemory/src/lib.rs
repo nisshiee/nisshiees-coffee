@@ -1,14 +1,16 @@
 extern crate failure;
-#[macro_use] extern crate failure_derive;
+#[macro_use]
+extern crate failure_derive;
 
 use cqrs_es::*;
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct OnMemoryEventStorage<A: Aggregate> {
     events: HashMap<A::Id, Vec<A::Event>>,
 }
 
-impl <A: Aggregate> OnMemoryEventStorage<A> {
+impl<A: Aggregate> OnMemoryEventStorage<A> {
     pub fn new() -> OnMemoryEventStorage<A> {
         OnMemoryEventStorage {
             events: HashMap::new(),
@@ -22,7 +24,7 @@ pub enum OnMemoryEventStorageError {
     Unexpected,
 }
 
-impl <A: Aggregate> EventStorage<A> for OnMemoryEventStorage<A> {
+impl<A: Aggregate> EventStorage<A> for OnMemoryEventStorage<A> {
     type Events = Vec<A::Event>;
     type Error = OnMemoryEventStorageError;
 

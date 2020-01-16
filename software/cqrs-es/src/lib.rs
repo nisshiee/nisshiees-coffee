@@ -1,7 +1,7 @@
 extern crate failure;
 
-use std::fmt::Debug;
 use failure::Fail;
+use std::fmt::Debug;
 use std::hash::Hash;
 
 pub trait Aggregate: Default {

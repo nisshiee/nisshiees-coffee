@@ -1,19 +1,20 @@
 extern crate chrono;
-extern crate uuid;
 extern crate failure;
-#[macro_use] extern crate failure_derive;
+extern crate uuid;
+#[macro_use]
+extern crate failure_derive;
 
 pub mod canister_list;
 pub mod seller;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Brand(String);
+pub struct Brand(pub String);
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct Roast(u8);
+pub struct Roast(pub u8);
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct Gram(u32);
+pub struct Gram(pub u32);
 
 #[cfg(test)]
 mod tests {

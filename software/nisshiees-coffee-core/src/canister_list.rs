@@ -1,12 +1,10 @@
-use cqrs_es::{Aggregate, Event, AggregateId, Command};
+use cqrs_es::{Aggregate, AggregateId, Command, Event};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub enum CanisterListAggregate {
     Uninitialized,
-    Created {
-        canisters: Vec<Canister>,
-    },
+    Created { canisters: Vec<Canister> },
 }
 
 #[derive(Debug, Clone)]
@@ -62,7 +60,9 @@ impl Event<CanisterListAggregate> for CanisterListEvent {
     fn apply_to(self, aggregate: &mut CanisterListAggregate) {
         match self {
             CanisterListEvent::Created => {
-                *aggregate = CanisterListAggregate::Created { canisters: Vec::new() }
+                *aggregate = CanisterListAggregate::Created {
+                    canisters: Vec::new(),
+                }
             }
             CanisterListEvent::CanisterAdded(canister) => {
                 if let CanisterListAggregate::Created { canisters } = aggregate {
@@ -99,30 +99,26 @@ impl Command<CanisterListAggregate> for CanisterListCommand {
 
     fn execute_on(self, aggregate: &CanisterListAggregate) -> Result<Self::Events, Self::Error> {
         match self {
-            CanisterListCommand::Create => {
-                match aggregate {
-                    CanisterListAggregate::Uninitialized => Ok(Some(CanisterListEvent::Created)),
-                    _ => Err(CanisterListCommandError::AlreadyCreated)
-                }
-            }
+            CanisterListCommand::Create => match aggregate {
+                CanisterListAggregate::Uninitialized => Ok(Some(CanisterListEvent::Created)),
+                _ => Err(CanisterListCommandError::AlreadyCreated),
+            },
 
-            CanisterListCommand::AddCanister(adding) => {
-                match aggregate {
-                    CanisterListAggregate::Created { canisters } => {
-                        if canisters.into_iter().any(|c| c.id == adding.id) {
-                            return Err(CanisterListCommandError::IdDuplicated)
-                        }
-                        if canisters.into_iter().any(|c| c.color == adding.color) {
-                            return Err(CanisterListCommandError::ColorDuplicated)
-                        }
-                        if canisters.into_iter().any(|c| c.name == adding.name) {
-                            return Err(CanisterListCommandError::NameDuplicated)
-                        }
-                        Ok(Some(CanisterListEvent::CanisterAdded(adding)))
-                    },
-                    _ => Err(CanisterListCommandError::Uninitialized),
+            CanisterListCommand::AddCanister(adding) => match aggregate {
+                CanisterListAggregate::Created { canisters } => {
+                    if canisters.into_iter().any(|c| c.id == adding.id) {
+                        return Err(CanisterListCommandError::IdDuplicated);
+                    }
+                    if canisters.into_iter().any(|c| c.color == adding.color) {
+                        return Err(CanisterListCommandError::ColorDuplicated);
+                    }
+                    if canisters.into_iter().any(|c| c.name == adding.name) {
+                        return Err(CanisterListCommandError::NameDuplicated);
+                    }
+                    Ok(Some(CanisterListEvent::CanisterAdded(adding)))
                 }
-            }
+                _ => Err(CanisterListCommandError::Uninitialized),
+            },
         }
     }
 }
