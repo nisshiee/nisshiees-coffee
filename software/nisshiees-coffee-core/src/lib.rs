@@ -4,6 +4,7 @@ extern crate failure;
 #[macro_use] extern crate failure_derive;
 
 pub mod canister_list;
+pub mod seller;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Brand(String);

@@ -9,11 +9,6 @@ pub enum CanisterListAggregate {
     },
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub struct CanisterListAggregateId(pub Uuid);
-
-impl AggregateId<CanisterListAggregate> for CanisterListAggregateId {}
-
 #[derive(Debug, Clone)]
 pub struct Canister {
     pub id: CanisterId,
@@ -46,6 +41,11 @@ impl Aggregate for CanisterListAggregate {
     type Command = CanisterListCommand;
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub struct CanisterListAggregateId(pub Uuid);
+
+impl AggregateId<CanisterListAggregate> for CanisterListAggregateId {}
+
 impl Default for CanisterListAggregate {
     fn default() -> Self {
         CanisterListAggregate::Uninitialized
@@ -62,9 +62,7 @@ impl Event<CanisterListAggregate> for CanisterListEvent {
     fn apply_to(self, aggregate: &mut CanisterListAggregate) {
         match self {
             CanisterListEvent::Created => {
-                if let CanisterListAggregate::Uninitialized = *aggregate {
-                    *aggregate = CanisterListAggregate::Created { canisters: Vec::new() }
-                }
+                *aggregate = CanisterListAggregate::Created { canisters: Vec::new() }
             }
             CanisterListEvent::CanisterAdded(canister) => {
                 if let CanisterListAggregate::Created { canisters } = aggregate {
