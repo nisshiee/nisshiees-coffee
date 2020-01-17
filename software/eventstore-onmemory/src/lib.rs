@@ -8,13 +8,19 @@ use std::collections::HashMap;
 #[derive(Debug)]
 pub struct OnMemoryEventStorage<A: Aggregate> {
     events: HashMap<A::Id, Vec<A::Event>>,
+    projectors: Vec<Box<dyn Projector<A>>>,
 }
 
 impl<A: Aggregate> OnMemoryEventStorage<A> {
     pub fn new() -> OnMemoryEventStorage<A> {
         OnMemoryEventStorage {
             events: HashMap::new(),
+            projectors: Vec::new(),
         }
+    }
+
+    pub fn add_projector<P: Projector<A>>(&mut self, projector: P) {
+        self.projectors.push(Box::new(projector))
     }
 }
 

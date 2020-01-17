@@ -40,6 +40,10 @@ pub trait EventStorage<A: Aggregate> {
     }
 }
 
+pub trait Projector<A: Aggregate>: Debug {
+    fn project(&mut self, event: &A::Event, snapshot: &A);
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
