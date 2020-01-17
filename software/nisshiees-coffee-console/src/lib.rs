@@ -11,6 +11,9 @@ use nisshiees_coffee_core::{canister_list, seller};
 pub use canister_list::Color::*;
 pub use canister_list::Name::*;
 use nisshiees_coffee_core::canister_list::Canister;
+use nisshiees_coffee_core::seller::purchase_log::{
+    PurchaseLogAggregate, PurchaseLogAggregateId, PurchaseLogEvent,
+};
 pub use nisshiees_coffee_core::{Brand, Gram, Roast};
 
 #[derive(Debug)]
@@ -25,6 +28,18 @@ struct SellerContext {
     purchase_log_storage: OnMemoryEventStorage<seller::purchase_log::PurchaseLogAggregate>,
 }
 
+#[derive(Debug)]
+struct PurchaseLogProjector {
+    sum_quantity: Gram,
+}
+
+impl Projector<PurchaseLogAggregate> for PurchaseLogProjector {
+    fn project(&mut self, _id: PurchaseLogAggregateId, event: &PurchaseLogEvent) {
+        let PurchaseLogEvent::Created { gram: Gram(g), .. } = *event;
+        self.sum_quantity = Gram(self.sum_quantity.0 + g);
+    }
+}
+
 impl Context {
     fn new() -> Context {
         Context {
@@ -37,8 +52,12 @@ impl Context {
 
 impl SellerContext {
     fn new() -> SellerContext {
+        let mut purchase_log_storage = OnMemoryEventStorage::new();
+        purchase_log_storage.add_projector(PurchaseLogProjector {
+            sum_quantity: Gram(0),
+        });
         SellerContext {
-            purchase_log_storage: OnMemoryEventStorage::new(),
+            purchase_log_storage,
         }
     }
 }

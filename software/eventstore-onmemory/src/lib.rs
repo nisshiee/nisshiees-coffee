@@ -19,8 +19,9 @@ impl<A: Aggregate> OnMemoryEventStorage<A> {
         }
     }
 
-    pub fn add_projector<P: Projector<A>>(&mut self, projector: P) {
-        self.projectors.push(Box::new(projector))
+    pub fn add_projector<P: Projector<A> + 'static>(&mut self, projector: P) {
+        let b = Box::new(projector);
+        self.projectors.push(b)
     }
 }
 
@@ -36,6 +37,10 @@ impl<A: Aggregate> EventStorage<A> for OnMemoryEventStorage<A> {
 
     fn insert(&mut self, id: A::Id, event: A::Event) -> Result<(), Self::Error> {
         let seq = self.events.entry(id).or_insert(Vec::new());
+        // TODO: pushを先にやりたい
+        self.projectors
+            .iter_mut()
+            .for_each(|p| p.project(id, &event));
         seq.push(event);
         Ok(())
     }

@@ -41,7 +41,7 @@ pub trait EventStorage<A: Aggregate> {
 }
 
 pub trait Projector<A: Aggregate>: Debug {
-    fn project(&mut self, event: &A::Event, snapshot: &A);
+    fn project(&mut self, id: A::Id, event: &A::Event);
 }
 
 #[cfg(test)]
