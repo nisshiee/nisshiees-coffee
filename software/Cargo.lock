@@ -61,7 +61,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "eventstore-onmemory"
+name = "eventstorage-onmemory"
 version = "0.1.0"
 dependencies = [
  "cqrs-es 0.1.0",
@@ -110,7 +110,7 @@ version = "0.1.0"
 dependencies = [
  "chrono 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "cqrs-es 0.1.0",
- "eventstore-onmemory 0.1.0",
+ "eventstorage-onmemory 0.1.0",
  "nisshiees-coffee-core 0.1.0",
  "uuid 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

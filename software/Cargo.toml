@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "cqrs-es",
-    "eventstore-onmemory",
+    "eventstorage-onmemory",
     "nisshiees-coffee-core",
     "nisshiees-coffee-console",
 ]

@@ -5,7 +5,7 @@ pub use chrono::NaiveDate;
 use uuid::Uuid;
 
 use cqrs_es::*;
-use eventstore_onmemory::OnMemoryEventStorage;
+use eventstorage_onmemory::OnMemoryEventStorage;
 use nisshiees_coffee_core::{canister_list, seller};
 
 pub use canister_list::Color::*;

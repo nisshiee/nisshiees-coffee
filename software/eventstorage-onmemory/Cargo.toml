@@ -1,5 +1,5 @@
 [package]
-name = "eventstore-onmemory"
+name = "eventstorage-onmemory"
 version = "0.1.0"
 authors = ["Hirokazu Nishioka <hiro@nisshiee.org>"]
 edition = "2018"
