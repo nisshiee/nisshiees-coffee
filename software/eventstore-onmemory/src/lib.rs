@@ -37,11 +37,10 @@ impl<A: Aggregate> EventStorage<A> for OnMemoryEventStorage<A> {
 
     fn insert(&mut self, id: A::Id, event: A::Event) -> Result<(), Self::Error> {
         let seq = self.events.entry(id).or_insert(Vec::new());
-        // TODO: pushを先にやりたい
+        seq.push(event.clone());
         self.projectors
             .iter_mut()
             .for_each(|p| p.project(id, &event));
-        seq.push(event);
         Ok(())
     }
 
