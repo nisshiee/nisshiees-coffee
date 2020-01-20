@@ -2,6 +2,7 @@
 members = [
     "cqrs-es",
     "eventstorage-onmemory",
+    "eventstorage-file",
     "nisshiees-coffee-core",
     "nisshiees-coffee-console",
 ]

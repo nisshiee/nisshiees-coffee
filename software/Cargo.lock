@@ -61,6 +61,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "eventstorage-file"
+version = "0.1.0"
+dependencies = [
+ "cqrs-es 0.1.0",
+ "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "failure_derive 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "eventstorage-onmemory"
 version = "0.1.0"
 dependencies = [
