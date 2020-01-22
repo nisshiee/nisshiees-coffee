@@ -1,6 +1,8 @@
 extern crate failure;
+extern crate serde;
 
 use failure::Fail;
+use serde::{Serialize, Deserialize};
 use std::fmt::Debug;
 use std::hash::Hash;
 
@@ -8,9 +10,12 @@ pub trait Aggregate: Default {
     type Id: AggregateId<Self>;
     type Event: Event<Self>;
     type Command: Command<Self>;
+
+    // `/` で区切ることで階層化することを想定
+    fn type_name() -> &'static str;
 }
 
-pub trait AggregateId<A: Aggregate>: Debug + Copy + Clone + Eq + PartialEq + Hash {}
+pub trait AggregateId<A: Aggregate>: Debug + Copy + Clone + Eq + PartialEq + Hash + ToString {}
 
 pub trait Event<A: Aggregate>: Debug + Clone {
     fn apply_to(self, aggregate: &mut A);

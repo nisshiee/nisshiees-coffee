@@ -24,10 +24,20 @@ impl Aggregate for PurchaseLogAggregate {
     type Id = PurchaseLogAggregateId;
     type Event = PurchaseLogEvent;
     type Command = PurchaseLogCommand;
+
+    fn type_name() -> &'static str {
+        "seller/purchase_log"
+    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct PurchaseLogAggregateId(pub Uuid);
+
+impl ToString for PurchaseLogAggregateId {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
 
 impl AggregateId<PurchaseLogAggregate> for PurchaseLogAggregateId {}
 

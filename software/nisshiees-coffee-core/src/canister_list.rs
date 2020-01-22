@@ -37,10 +37,20 @@ impl Aggregate for CanisterListAggregate {
     type Id = CanisterListAggregateId;
     type Event = CanisterListEvent;
     type Command = CanisterListCommand;
+
+    fn type_name() -> &'static str {
+        "canister_list"
+    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct CanisterListAggregateId(pub Uuid);
+
+impl ToString for CanisterListAggregateId {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
 
 impl AggregateId<CanisterListAggregate> for CanisterListAggregateId {}
 
