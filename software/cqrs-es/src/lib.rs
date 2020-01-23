@@ -2,7 +2,8 @@ extern crate failure;
 extern crate serde;
 
 use failure::Fail;
-use serde::{Serialize, Deserialize};
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 use std::fmt::Debug;
 use std::hash::Hash;
 
@@ -17,7 +18,7 @@ pub trait Aggregate: Default {
 
 pub trait AggregateId<A: Aggregate>: Debug + Copy + Clone + Eq + PartialEq + Hash + ToString {}
 
-pub trait Event<A: Aggregate>: Debug + Clone {
+pub trait Event<A: Aggregate>: Debug + Clone + Serialize + DeserializeOwned {
     fn apply_to(self, aggregate: &mut A);
 }
 

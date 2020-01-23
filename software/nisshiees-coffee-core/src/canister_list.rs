@@ -1,4 +1,5 @@
 use cqrs_es::{Aggregate, AggregateId, Command, Event};
+use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -7,17 +8,17 @@ pub enum CanisterListAggregate {
     Created { canisters: Vec<Canister> },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Canister {
     pub id: CanisterId,
     pub color: Color,
     pub name: Name,
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CanisterId(pub Uuid);
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Color {
     Blue,
     Green,
@@ -25,7 +26,7 @@ pub enum Color {
     Purple,
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Name {
     Matsubara,
     Matsumoto,
@@ -60,7 +61,7 @@ impl Default for CanisterListAggregate {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CanisterListEvent {
     Created,
     CanisterAdded(Canister),

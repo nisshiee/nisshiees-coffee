@@ -2,6 +2,7 @@ use crate::{Brand, Gram, Roast};
 use chrono::NaiveDate;
 use cqrs_es::{Aggregate, AggregateId, Command, Event};
 use uuid::Uuid;
+use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone)]
 pub enum PurchaseLogAggregate {
@@ -41,7 +42,7 @@ impl ToString for PurchaseLogAggregateId {
 
 impl AggregateId<PurchaseLogAggregate> for PurchaseLogAggregateId {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PurchaseLogEvent {
     Created {
         brand: Brand,
