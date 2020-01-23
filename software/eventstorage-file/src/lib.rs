@@ -5,21 +5,25 @@ extern crate serde;
 extern crate serde_json;
 
 use cqrs_es::*;
-use std::path::{Path, PathBuf};
-use std::io;
-use std::io::{Write, BufRead};
 use std::fs;
-use failure::_core::marker::PhantomData;
+use std::io;
+use std::io::{BufRead, Write};
+use std::path::{Path, PathBuf};
 
-pub struct FileEventStorage<A: Aggregate> {
+pub struct FileEventStorage<'a, A: Aggregate> {
     dir: PathBuf,
-    phantom: PhantomData<A>,
+    projectors: Vec<&'a mut dyn Projector<A>>,
 }
 
-impl <A: Aggregate> FileEventStorage<A> {
-    pub fn new<P>(root_path: P) -> Result<Self, io::Error> where P: AsRef<Path> {
+impl<A: Aggregate> FileEventStorage<'_, A> {
+    pub fn new<P>(root_path: P) -> Result<Self, io::Error>
+    where
+        P: AsRef<Path>,
+    {
         let mut aggregate_dir = root_path.as_ref().to_owned();
-        A::type_name().split('/').for_each(|e| aggregate_dir.push(e));
+        A::type_name()
+            .split('/')
+            .for_each(|e| aggregate_dir.push(e));
 
         let mut dir_builder = fs::DirBuilder::new();
         dir_builder.recursive(true);
@@ -27,7 +31,7 @@ impl <A: Aggregate> FileEventStorage<A> {
 
         Ok(FileEventStorage {
             dir: aggregate_dir,
-            phantom: PhantomData,
+            projectors: Vec::new(),
         })
     }
 
@@ -38,12 +42,18 @@ impl <A: Aggregate> FileEventStorage<A> {
     }
 }
 
+impl<'a, A: Aggregate> FileEventStorage<'a, A> {
+    pub fn add_projector<P: Projector<A>>(&mut self, projector: &'a mut P) {
+        self.projectors.push(projector)
+    }
+}
+
 #[derive(Fail, Debug)]
 pub enum FileEventStorageError {
     #[fail(display = "IO error: {}", _0)]
-    Io(#[fail(cause)]io::Error),
+    Io(#[fail(cause)] io::Error),
     #[fail(display = "JSON error: {}", _0)]
-    Json(#[fail(cause)]serde_json::Error),
+    Json(#[fail(cause)] serde_json::Error),
 }
 
 impl From<io::Error> for FileEventStorageError {
@@ -62,16 +72,24 @@ impl From<serde_json::Error> for FileEventStorageError {
     }
 }
 
-impl<A: Aggregate> EventStorage<A> for FileEventStorage<A> {
+impl<A: Aggregate> EventStorage<A> for FileEventStorage<'_, A> {
     type Events = Vec<A::Event>;
     type Error = FileEventStorageError;
 
     fn insert(&mut self, id: A::Id, event: A::Event) -> Result<(), Self::Error> {
         let file_path = self.file_path(id);
-        let mut file = fs::OpenOptions::new().create(true).append(true).open(file_path)?;
+        let mut file = fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(file_path)?;
         let json = serde_json::to_string(&event)?;
         file.write_all(json.as_bytes())?;
         file.write_all(&[0x0A])?;
+
+        self.projectors
+            .iter_mut()
+            .for_each(|p| p.project(id, &event));
+
         Ok(())
     }
 
@@ -79,10 +97,10 @@ impl<A: Aggregate> EventStorage<A> for FileEventStorage<A> {
         let file_path = self.file_path(id);
         let metadata = fs::metadata(&file_path)?;
         if !metadata.is_file() {
-            return  Ok(Vec::new())
+            return Ok(Vec::new());
         }
         if metadata.len() == 0 {
-            return Ok(Vec::new())
+            return Ok(Vec::new());
         }
         let file = fs::File::open(&file_path)?;
         let file = io::BufReader::new(file);
@@ -97,9 +115,9 @@ impl<A: Aggregate> EventStorage<A> for FileEventStorage<A> {
 
 #[cfg(test)]
 mod tests {
-    use cqrs_es::{Aggregate, AggregateId, Event, Command, EventStorage};
-    use serde::{Serialize, Deserialize};
     use crate::FileEventStorage;
+    use cqrs_es::{Aggregate, AggregateId, Command, Event, EventStorage, Projector};
+    use serde::{Deserialize, Serialize};
 
     struct TestAggregate(u64);
 
@@ -134,8 +152,7 @@ mod tests {
     }
 
     #[derive(Debug)]
-    enum TestCommand {
-    }
+    enum TestCommand {}
 
     #[derive(Fail, Debug)]
     #[fail(display = "test")]
@@ -160,17 +177,33 @@ mod tests {
         }
     }
 
+    #[derive(Debug)]
+    struct TestProjector();
+
+    impl Projector<TestAggregate> for TestProjector {
+        fn project(&mut self, _id: TestAggregateId, event: &TestEvent) {
+            println!("{:?}", event);
+        }
+    }
+
     #[test]
     fn it_works() {
         let mut storage = FileEventStorage::<TestAggregate>::new("test").unwrap();
+        let mut projector = TestProjector();
+        storage.add_projector(&mut projector);
         let id = TestAggregateId(1);
         storage.insert(id, TestEvent::E1).unwrap();
         storage.insert(id, TestEvent::E2(123)).unwrap();
-        storage.insert(id, TestEvent::E3 {
-            x: 456,
-            y: "hoge".to_string(),
-            z: true
-        }).unwrap();
+        storage
+            .insert(
+                id,
+                TestEvent::E3 {
+                    x: 456,
+                    y: "hoge".to_string(),
+                    z: true,
+                },
+            )
+            .unwrap();
         let events = storage.read(id).unwrap();
         println!("{:?}", events);
         assert_eq!(2 + 2, 4);

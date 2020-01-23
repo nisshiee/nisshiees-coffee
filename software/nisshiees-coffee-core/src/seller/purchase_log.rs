@@ -1,8 +1,8 @@
 use crate::{Brand, Gram, Roast};
 use chrono::NaiveDate;
 use cqrs_es::{Aggregate, AggregateId, Command, Event};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone)]
 pub enum PurchaseLogAggregate {

@@ -1,5 +1,5 @@
 use cqrs_es::{Aggregate, AggregateId, Command, Event};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]

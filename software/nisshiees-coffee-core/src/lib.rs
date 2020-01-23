@@ -8,7 +8,7 @@ extern crate failure_derive;
 pub mod canister_list;
 pub mod seller;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Brand(pub String);
