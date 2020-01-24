@@ -95,13 +95,18 @@ impl<A: Aggregate> EventStorage<A> for FileEventStorage<'_, A> {
 
     fn read(&self, id: <A as Aggregate>::Id) -> Result<Self::Events, Self::Error> {
         let file_path = self.file_path(id);
-        let metadata = fs::metadata(&file_path)?;
-        if !metadata.is_file() {
-            return Ok(Vec::new());
+
+        if let Ok(metadata) = fs::metadata(&file_path) {
+            if !metadata.is_file() {
+                return Ok(Vec::new());
+            }
+            if metadata.len() == 0 {
+                return Ok(Vec::new());
+            }
+        } else {
+            return Ok(Vec::new())
         }
-        if metadata.len() == 0 {
-            return Ok(Vec::new());
-        }
+
         let file = fs::File::open(&file_path)?;
         let file = io::BufReader::new(file);
         file.lines().try_fold(Vec::new(), |mut a, e| {

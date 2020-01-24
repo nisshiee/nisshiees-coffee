@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 nisshiees-coffee-core = { path = "../nisshiees-coffee-core" }
 cqrs-es = { path = "../cqrs-es" }
-eventstorage-onmemory = { path = "../eventstorage-onmemory" }
+eventstorage-file = { path = "../eventstorage-file" }
 uuid = { version = "0.8.1", features = ["v4"] }
 chrono = "0.4.10"
+structopt = "0.3.8"

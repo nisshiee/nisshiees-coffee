@@ -47,6 +47,13 @@ pub trait EventStorage<A: Aggregate> {
         events.into_iter().for_each(|e| e.apply_to(&mut aggregate));
         Ok(aggregate)
     }
+
+    // TODO: unwrapやめる
+    fn execute_command(&mut self, id: A::Id, command: A::Command) {
+        let aggregate = self.replay_aggregate(id).unwrap();
+        let events = command.execute_on(&aggregate).unwrap();
+        events.into_iter().for_each(|e| self.insert(id, e).unwrap())
+    }
 }
 
 pub trait Projector<A: Aggregate>: Debug {
