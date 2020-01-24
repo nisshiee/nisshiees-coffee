@@ -1,13 +1,13 @@
 extern crate structopt;
 extern crate uuid;
 
-use structopt::StructOpt;
-use std::str::FromStr;
+use cqrs_es::EventStorage;
+use eventstorage_file::FileEventStorage;
 use nisshiees_coffee_core::canister_list;
 use nisshiees_coffee_core::canister_list::Canister;
-use eventstorage_file::FileEventStorage;
+use std::str::FromStr;
+use structopt::StructOpt;
 use uuid::Uuid;
-use cqrs_es::EventStorage;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "nisshiees-coffee", about = "nisshiee's coffee運用ツールです")]
@@ -27,10 +27,7 @@ enum Subcommands {
 #[derive(Debug, StructOpt)]
 enum CanisterCommands {
     #[structopt(about = "新しいキャニスターを登録します")]
-    Add {
-        color: Color,
-        name: Name,
-    },
+    Add { color: Color, name: Name },
     #[structopt(about = "キャニスターの一覧を表示します")]
     List,
 }
@@ -106,12 +103,17 @@ struct Context<'a> {
     default_canister_list_id: canister_list::CanisterListAggregateId,
 }
 
-impl <'a> Context<'a> {
+impl<'a> Context<'a> {
     fn new() -> Context<'a> {
         let canister_list_storage = FileEventStorage::new("storage/events").unwrap();
-        let default_canister_list_id = Uuid::parse_str("008044ba-7674-4ff3-a0ae-ef724ddd66a6").unwrap();
-        let default_canister_list_id = canister_list::CanisterListAggregateId(default_canister_list_id);
-        Context { canister_list_storage, default_canister_list_id }
+        let default_canister_list_id =
+            Uuid::parse_str("008044ba-7674-4ff3-a0ae-ef724ddd66a6").unwrap();
+        let default_canister_list_id =
+            canister_list::CanisterListAggregateId(default_canister_list_id);
+        Context {
+            canister_list_storage,
+            default_canister_list_id,
+        }
     }
 }
 
@@ -123,21 +125,28 @@ fn main() {
     match opt.sub {
         Subcommands::Init => {
             let cmd = canister_list::CanisterListCommand::Create;
-            ctx.canister_list_storage.execute_command(ctx.default_canister_list_id, cmd)
-        },
+            ctx.canister_list_storage
+                .execute_command(ctx.default_canister_list_id, cmd)
+                .unwrap();
+        }
         Subcommands::Canister(CanisterCommands::Add { color, name }) => {
-            let cmd = canister_list::CanisterListCommand::AddCanister(Canister{
+            let cmd = canister_list::CanisterListCommand::AddCanister(Canister {
                 id: canister_list::CanisterId(Uuid::new_v4()),
                 color: color.into(),
                 name: name.into(),
             });
-            ctx.canister_list_storage.execute_command(ctx.default_canister_list_id, cmd)
-        },
+            ctx.canister_list_storage
+                .execute_command(ctx.default_canister_list_id, cmd)
+                .unwrap();
+        }
         Subcommands::Canister(CanisterCommands::List) => {
-            let agg = ctx.canister_list_storage.replay_aggregate(ctx.default_canister_list_id).unwrap();
+            let agg = ctx
+                .canister_list_storage
+                .replay_aggregate(ctx.default_canister_list_id)
+                .unwrap();
             if let canister_list::CanisterListAggregate::Created { canisters } = agg {
                 canisters.into_iter().for_each(|c| println!("{:?}", c))
             }
-        },
+        }
     }
 }

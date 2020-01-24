@@ -31,6 +31,8 @@ pub enum OnMemoryEventStorageError {
     Unexpected,
 }
 
+impl EventStorageError for OnMemoryEventStorageError {}
+
 impl<A: Aggregate> EventStorage<A> for OnMemoryEventStorage<A> {
     type Events = Vec<A::Event>;
     type Error = OnMemoryEventStorageError;

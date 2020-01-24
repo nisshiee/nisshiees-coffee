@@ -56,6 +56,8 @@ pub enum FileEventStorageError {
     Json(#[fail(cause)] serde_json::Error),
 }
 
+impl EventStorageError for FileEventStorageError {}
+
 impl From<io::Error> for FileEventStorageError {
     fn from(e: io::Error) -> Self {
         FileEventStorageError::Io(e)
@@ -104,7 +106,7 @@ impl<A: Aggregate> EventStorage<A> for FileEventStorage<'_, A> {
                 return Ok(Vec::new());
             }
         } else {
-            return Ok(Vec::new())
+            return Ok(Vec::new());
         }
 
         let file = fs::File::open(&file_path)?;
@@ -121,7 +123,7 @@ impl<A: Aggregate> EventStorage<A> for FileEventStorage<'_, A> {
 #[cfg(test)]
 mod tests {
     use crate::FileEventStorage;
-    use cqrs_es::{Aggregate, AggregateId, Command, Event, EventStorage, Projector};
+    use cqrs_es::{Aggregate, AggregateId, Command, CommandError, Event, EventStorage, Projector};
     use serde::{Deserialize, Serialize};
 
     struct TestAggregate(u64);
@@ -162,6 +164,8 @@ mod tests {
     #[derive(Fail, Debug)]
     #[fail(display = "test")]
     struct TestCommandError();
+
+    impl CommandError for TestCommandError {}
 
     impl Command<TestAggregate> for TestCommand {
         type Events = Option<TestEvent>;

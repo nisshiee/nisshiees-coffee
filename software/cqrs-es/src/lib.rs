@@ -25,16 +25,20 @@ pub trait Event<A: Aggregate>: Debug + Clone + Serialize + DeserializeOwned {
     fn apply_to(self, aggregate: &mut A);
 }
 
+pub trait CommandError: Fail {}
+
 pub trait Command<A: Aggregate> {
     type Events: IntoIterator<Item = A::Event>;
-    type Error: Fail;
+    type Error: CommandError;
 
     fn execute_on(self, aggregate: &A) -> Result<Self::Events, Self::Error>;
 }
 
+pub trait EventStorageError: Fail {}
+
 pub trait EventStorage<A: Aggregate> {
     type Events: IntoIterator<Item = A::Event>;
-    type Error: Fail;
+    type Error: EventStorageError;
 
     fn insert(&mut self, id: A::Id, event: A::Event) -> Result<(), Self::Error>;
 
@@ -48,12 +52,31 @@ pub trait EventStorage<A: Aggregate> {
         Ok(aggregate)
     }
 
-    // TODO: unwrapやめる
-    fn execute_command(&mut self, id: A::Id, command: A::Command) {
-        let aggregate = self.replay_aggregate(id).unwrap();
-        let events = command.execute_on(&aggregate).unwrap();
-        events.into_iter().for_each(|e| self.insert(id, e).unwrap())
+    fn execute_command<C: Command<A>>(
+        &mut self,
+        id: A::Id,
+        command: C,
+    ) -> Result<(), ExecuteCommandError<Self::Error, C::Error>>
+    where
+        A: Aggregate<Command = C>,
+    {
+        let aggregate = self.replay_aggregate(id);
+        let aggregate = aggregate.map_err(|e| ExecuteCommandError::Storage(e))?;
+
+        let events = command.execute_on(&aggregate);
+        let events = events.map_err(|e| ExecuteCommandError::Command(e))?;
+
+        let ret = events.into_iter().try_for_each(|e| self.insert(id, e));
+        ret.map_err(|e| ExecuteCommandError::Storage(e))
     }
+}
+
+#[derive(Fail, Debug)]
+pub enum ExecuteCommandError<S: EventStorageError, C: CommandError> {
+    #[fail(display = "Storage error: {}", _0)]
+    Storage(S),
+    #[fail(display = "Command error: {}", _0)]
+    Command(C),
 }
 
 pub trait Projector<A: Aggregate>: Debug {

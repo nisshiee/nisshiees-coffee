@@ -1,4 +1,4 @@
-use cqrs_es::{Aggregate, AggregateId, Command, Event};
+use cqrs_es::{Aggregate, AggregateId, Command, CommandError, Event};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -103,6 +103,8 @@ pub enum CanisterListCommandError {
     #[fail(display = "CanisterList uninitialized")]
     Uninitialized,
 }
+
+impl CommandError for CanisterListCommandError {}
 
 impl Command<CanisterListAggregate> for CanisterListCommand {
     type Events = Option<CanisterListEvent>;

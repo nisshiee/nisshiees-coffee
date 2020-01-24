@@ -1,6 +1,6 @@
 use crate::{Brand, Gram, Roast};
 use chrono::NaiveDate;
-use cqrs_es::{Aggregate, AggregateId, Command, Event};
+use cqrs_es::{Aggregate, AggregateId, Command, CommandError, Event};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -87,6 +87,8 @@ pub enum PurchaseLogCommandError {
     #[fail(display = "PurchaseLog already created")]
     AlreadyCreated,
 }
+
+impl CommandError for PurchaseLogCommandError {}
 
 impl Command<PurchaseLogAggregate> for PurchaseLogCommand {
     type Events = Option<PurchaseLogEvent>;
