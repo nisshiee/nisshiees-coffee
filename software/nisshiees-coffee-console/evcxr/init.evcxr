@@ -1,3 +1,0 @@
-:dep chrono = "0.4.10"
-:dep nisshiees-coffee-core = { path = "../nisshiees-coffee-core" }
-:dep nisshiees-coffee-console = { path = "." }

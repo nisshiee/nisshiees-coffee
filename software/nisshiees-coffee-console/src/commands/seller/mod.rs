@@ -1,19 +1,19 @@
-use crate::commands::seller::purchase_log::PurchaseLogCommands;
+use crate::commands::seller::stock::StockCommands;
 use crate::context::Context;
 use structopt::StructOpt;
 
-mod purchase_log;
+mod stock;
 
 #[derive(Debug, StructOpt)]
 pub enum SellerCommands {
-    #[structopt(about = "仕入ログに関する操作を実行します")]
-    PurchaseLog(PurchaseLogCommands),
+    #[structopt(about = "在庫に関する操作を実行します")]
+    Stock(StockCommands),
 }
 
 impl SellerCommands {
     pub fn exec(self, ctx: &mut Context) {
         match self {
-            SellerCommands::PurchaseLog(c) => c.exec(ctx),
+            SellerCommands::Stock(c) => c.exec(ctx),
         }
     }
 }

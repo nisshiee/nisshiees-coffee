@@ -3,6 +3,7 @@ use crate::commands::seller::SellerCommands;
 use crate::Context;
 use cqrs_es::EventStorage;
 use nisshiees_coffee_core::canister_list;
+use nisshiees_coffee_core::seller::stock;
 use structopt::StructOpt;
 
 mod canister;
@@ -14,7 +15,7 @@ pub enum Commands {
     Init,
     #[structopt(about = "キャニスターに関する操作を実行します")]
     Canister(CanisterCommands),
-    #[structopt(about = "運用者に関する操作を実行します")]
+    #[structopt(about = "売り手に関する操作を実行します")]
     Seller(SellerCommands),
 }
 
@@ -25,6 +26,11 @@ impl Commands {
                 let cmd = canister_list::CanisterListCommand::Create;
                 ctx.canister_list_storage
                     .execute_command(ctx.default_canister_list_id, cmd)
+                    .unwrap();
+
+                let cmd = stock::StockCommand::Create;
+                ctx.seller_stock_storage
+                    .execute_command(ctx.default_seller_stock_id, cmd)
                     .unwrap();
             }
             Commands::Canister(c) => c.exec(ctx),

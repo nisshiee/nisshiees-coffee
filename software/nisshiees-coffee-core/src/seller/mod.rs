@@ -1,1 +1,1 @@
-pub mod purchase_log;
+pub mod stock;
