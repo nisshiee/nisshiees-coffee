@@ -13,6 +13,15 @@ pub enum StockCommands {
         #[structopt(long = "--roast")]
         roast: u8,
     },
+    #[structopt(about = "在庫から豆をキャニスターに移します")]
+    Use {
+        #[structopt(long = "--brand")]
+        brand: String,
+        #[structopt(long = "--roast")]
+        roast: u8,
+        #[structopt(long = "--all")]
+        all: bool,
+    },
     #[structopt(about = "在庫状況を表示します")]
     Show,
 }
@@ -21,11 +30,20 @@ impl StockCommands {
     pub fn exec(self, ctx: &mut Context) {
         match self {
             StockCommands::PurchasePack { brand, roast } => {
-                let cmd = stock::StockCommand::Purchase(stock::Pack {
+                let cmd = stock::StockCommand::Purchase {
                     brand: Brand(brand),
                     roast: Roast(roast),
-                    remaining_amount: stock::RemainingAmount::GteFillingCanister,
-                });
+                };
+                ctx.seller_stock_storage
+                    .execute_command(ctx.default_seller_stock_id, cmd)
+                    .unwrap();
+            }
+            StockCommands::Use { brand, roast, all } => {
+                let cmd = stock::StockCommand::Use {
+                    brand: Brand(brand),
+                    roast: Roast(roast),
+                    all,
+                };
                 ctx.seller_stock_storage
                     .execute_command(ctx.default_seller_stock_id, cmd)
                     .unwrap();

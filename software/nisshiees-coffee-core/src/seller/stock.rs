@@ -17,8 +17,8 @@ pub struct Pack {
 }
 
 impl Pack {
-    pub fn is_same_bean(&self, other: &Pack) -> bool {
-        self.brand == other.brand && self.roast == other.roast
+    pub fn is_same_bean(&self, brand: &Brand, roast: &Roast) -> bool {
+        self.brand == *brand && self.roast == *roast
     }
 }
 
@@ -58,22 +58,41 @@ impl AggregateId<StockAggregate> for StockAggregateId {}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum StockEvent {
     Created,
-    Purchased(Pack),
+    Purchased { brand: Brand, roast: Roast },
+    Decreased { brand: Brand, roast: Roast },
+    Removed { brand: Brand, roast: Roast },
 }
 
 impl Event<StockAggregate> for StockEvent {
     fn apply_to(self, aggregate: &mut StockAggregate) {
         match self {
             StockEvent::Created => *aggregate = StockAggregate::Created { packs: Vec::new() },
-            StockEvent::Purchased(new_pack) => {
+            StockEvent::Purchased { brand, roast } => {
                 if let StockAggregate::Created { packs } = aggregate {
-                    let same_bean_pack = packs.iter_mut().find(|p| p.is_same_bean(&new_pack));
+                    let same_bean_pack = packs.iter_mut().find(|p| p.is_same_bean(&brand, &roast));
                     match same_bean_pack {
-                        None => packs.push(new_pack),
+                        None => packs.push(Pack {
+                            brand,
+                            roast,
+                            remaining_amount: RemainingAmount::GteFillingCanister,
+                        }),
                         Some(same_bean_pack) => {
                             same_bean_pack.remaining_amount = RemainingAmount::GteFillingCanister
                         }
                     }
+                }
+            }
+            StockEvent::Decreased { brand, roast } => {
+                if let StockAggregate::Created { packs } = aggregate {
+                    let same_bean_pack = packs.iter_mut().find(|p| p.is_same_bean(&brand, &roast));
+                    if let Some(same_bean_pack) = same_bean_pack {
+                        same_bean_pack.remaining_amount = RemainingAmount::LtFillingCanister;
+                    }
+                }
+            }
+            StockEvent::Removed { brand, roast } => {
+                if let StockAggregate::Created { packs } = aggregate {
+                    packs.retain(|p| !p.is_same_bean(&brand, &roast))
                 }
             }
         }
@@ -83,11 +102,24 @@ impl Event<StockAggregate> for StockEvent {
 #[derive(Debug)]
 pub enum StockCommand {
     Create,
-    Purchase(Pack),
+    Purchase {
+        brand: Brand,
+        roast: Roast,
+    },
+    Use {
+        brand: Brand,
+        roast: Roast,
+        all: bool,
+    },
 }
 
 #[derive(Fail, Debug)]
 pub enum StockCommandError {
+    #[fail(
+        display = "brand: {:?}, roast: {:?} not contained in Stock",
+        brand, roast
+    )]
+    NotInStock { brand: Brand, roast: Roast },
     #[fail(display = "Stock already created")]
     AlreadyCreated,
     #[fail(display = "Stock uninitialized")]
@@ -106,8 +138,22 @@ impl Command<StockAggregate> for StockCommand {
                 StockAggregate::Uninitialized => Ok(Some(StockEvent::Created)),
                 _ => Err(StockCommandError::AlreadyCreated),
             },
-            StockCommand::Purchase(new_pack) => match aggregate {
-                StockAggregate::Created { .. } => Ok(Some(StockEvent::Purchased(new_pack))),
+            StockCommand::Purchase { brand, roast } => match aggregate {
+                StockAggregate::Created { .. } => Ok(Some(StockEvent::Purchased { brand, roast })),
+                StockAggregate::Uninitialized => Err(StockCommandError::Uninitialized),
+            },
+            StockCommand::Use { brand, roast, all } => match aggregate {
+                StockAggregate::Created { packs } => {
+                    if packs.iter().any(|p| p.is_same_bean(&brand, &roast)) {
+                        if all {
+                            Ok(Some(StockEvent::Removed { brand, roast }))
+                        } else {
+                            Ok(Some(StockEvent::Decreased { brand, roast }))
+                        }
+                    } else {
+                        Err(StockCommandError::NotInStock { brand, roast })
+                    }
+                }
                 StockAggregate::Uninitialized => Err(StockCommandError::Uninitialized),
             },
         }
