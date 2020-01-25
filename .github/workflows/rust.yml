@@ -10,6 +10,8 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Build
+      working-directory: ./software
       run: cargo build --verbose
     - name: Run tests
+      working-directory: ./software
       run: cargo test --verbose
