@@ -8,4 +8,5 @@ edition = "2018"
 
 [dependencies]
 failure = "0.1.6"
-serde = "1.0.104"
+failure_derive = "0.1.6"
+serde = { version = "1.0.104", features = ["derive"] }
