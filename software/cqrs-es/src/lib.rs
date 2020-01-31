@@ -1,17 +1,20 @@
 extern crate failure;
 extern crate serde;
+extern crate uuid;
+
 #[cfg(test)]
 #[macro_use]
 extern crate failure_derive;
 
 use failure::Fail;
+use failure::_core::marker::PhantomData;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::hash::Hash;
+use uuid::Uuid;
 
-pub trait Aggregate: Default {
-    type Id: AggregateId<Self>;
+pub trait Aggregate: Default + Clone {
     type Event: Event<Self>;
     type Command: Command<Self>;
 
@@ -28,9 +31,18 @@ pub struct VersionedAggregate<A: Aggregate> {
     aggregate: A,
 }
 
-pub trait AggregateId<A: Aggregate>:
-    Debug + Copy + Clone + Eq + PartialEq + Hash + ToString
-{
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub struct Id<A: Aggregate> {
+    id: Uuid,
+    phantom: PhantomData<A>,
+}
+
+impl<A: Aggregate> Copy for Id<A> {}
+
+impl<A: Aggregate> ToString for Id<A> {
+    fn to_string(&self) -> String {
+        self.id.to_string()
+    }
 }
 
 pub trait Event<A: Aggregate>: Debug + Clone + Serialize + DeserializeOwned {
@@ -52,12 +64,12 @@ pub trait EventStorage<A: Aggregate> {
     type Events: IntoIterator<Item = A::Event>;
     type Error: EventStorageError;
 
-    fn insert(&mut self, id: A::Id, event: A::Event) -> Result<(), Self::Error>;
+    fn insert(&mut self, id: Id<A>, event: A::Event) -> Result<(), Self::Error>;
 
     // FIXME: Eventsではなく&Eventsを返すことで、不要なメモリコピーを抑制できる気がする
-    fn read(&self, id: A::Id) -> Result<Self::Events, Self::Error>;
+    fn read(&self, id: Id<A>) -> Result<Self::Events, Self::Error>;
 
-    fn replay_aggregate(&self, id: A::Id) -> Result<A, Self::Error> {
+    fn replay_aggregate(&self, id: Id<A>) -> Result<A, Self::Error> {
         let mut aggregate = A::default();
         let events = self.read(id)?;
         events.into_iter().for_each(|e| e.apply_to(&mut aggregate));
@@ -66,7 +78,7 @@ pub trait EventStorage<A: Aggregate> {
 
     fn execute_command<C: Command<A>>(
         &mut self,
-        id: A::Id,
+        id: Id<A>,
         command: C,
     ) -> Result<(), ExecuteCommandError<Self::Error, C::Error>>
     where
@@ -92,14 +104,15 @@ pub enum ExecuteCommandError<S: EventStorageError, C: CommandError> {
 }
 
 pub trait Projector<A: Aggregate>: Debug {
-    fn project(&mut self, id: A::Id, event: &A::Event);
+    fn project(&mut self, id: Id<A>, event: &A::Event);
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Aggregate, AggregateId, Command, CommandError, Event};
+    use crate::{Aggregate, Command, CommandError, Event};
     use serde::{Deserialize, Serialize};
 
+    #[derive(Debug, Clone)]
     struct TestAggregate(u64);
 
     impl Default for TestAggregate {
@@ -107,17 +120,6 @@ mod tests {
             TestAggregate(0)
         }
     }
-
-    #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-    struct TestAggregateId(u64);
-
-    impl ToString for TestAggregateId {
-        fn to_string(&self) -> String {
-            format!("{}", self.0)
-        }
-    }
-
-    impl AggregateId<TestAggregate> for TestAggregateId {}
 
     #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
     enum TestEvent {
@@ -150,7 +152,6 @@ mod tests {
     }
 
     impl Aggregate for TestAggregate {
-        type Id = TestAggregateId;
         type Event = TestEvent;
         type Command = TestCommand;
 
