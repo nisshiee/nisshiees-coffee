@@ -48,15 +48,49 @@ pub enum ExecuteCommandError<S: EventStorageError, C: CommandError> {
 
 #[cfg(test)]
 mod tests {
+    use crate::store::*;
     use crate::tests::test_aggregate::*;
-    use crate::tests::onmemory_storage::*;
     use crate::*;
 
+    #[derive(Fail, Debug, Clone, Eq, PartialEq)]
+    #[fail(display = "unexpected")]
+    pub struct MockStorageError {}
+
+    impl EventStorageError for MockStorageError {}
+
+    mock_trait_no_default!(
+        MockEventStorage,
+        read(Id<TestAggregate>) -> Result<Option<TestEvent>, MockStorageError>,
+        insert(Id<TestAggregate>, TestEvent) -> Result<(), MockStorageError>
+    );
+
+    impl EventStorage<TestAggregate> for MockEventStorage {
+        type Events = Option<TestEvent>;
+        type Error = MockStorageError;
+
+        mock_method!(read(&self, id: Id<TestAggregate>) -> Result<Self::Events, Self::Error>);
+        mock_method!(insert(&mut self, id: Id<TestAggregate>, event: TestEvent) -> Result<(), Self::Error>);
+    }
+
     #[test]
-    fn event() {
-        let event = TestEvent::Increased;
-        let mut aggregate = TestAggregate(0);
-        event.apply_to(&mut aggregate);
-        assert_eq!(aggregate.0, 1);
+    fn replay_aggregate() {
+        let storage = MockEventStorage::new(Ok(None), Ok(()));
+        let id = Id::new();
+        let got = storage.replay_aggregate(id);
+        assert!(got.is_ok());
+        assert!(storage.read.has_calls_exactly(vec![id]));
+    }
+
+    #[test]
+    fn execute_command() {
+        let mut storage = MockEventStorage::new(Ok(None), Ok(()));
+        let id = Id::new();
+        let cmd = TestCommand::Increase;
+        let got = storage.execute_command(id, cmd);
+        assert!(got.is_ok());
+        assert!(storage.read.has_calls_exactly(vec![id]));
+        assert!(storage
+            .insert
+            .has_calls_exactly(vec![(id, TestEvent::Increased)]));
     }
 }

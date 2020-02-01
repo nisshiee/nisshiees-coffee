@@ -1,6 +1,10 @@
 extern crate failure;
 extern crate uuid;
 
+#[cfg(test)]
+#[macro_use]
+extern crate double;
+
 pub mod store;
 
 use failure::Fail;
@@ -32,6 +36,15 @@ pub struct Id<A: Aggregate> {
     phantom: PhantomData<A>,
 }
 
+impl<A: Aggregate> Id<A> {
+    pub fn new() -> Id<A> {
+        Id {
+            id: Uuid::new_v4(),
+            phantom: PhantomData,
+        }
+    }
+}
+
 impl<A: Aggregate> PartialEq for Id<A> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
@@ -43,7 +56,6 @@ impl<A: Aggregate> Hash for Id<A> {
         self.id.hash(state)
     }
 }
-
 
 impl<A: Aggregate> Debug for Id<A> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
@@ -86,8 +98,8 @@ pub trait Projector<A: Aggregate>: Debug {
 
 #[cfg(test)]
 mod tests {
-    pub mod test_aggregate;
     pub mod onmemory_storage;
+    pub mod test_aggregate;
 
     use crate::*;
     use test_aggregate::*;
@@ -97,17 +109,14 @@ mod tests {
         let event = TestEvent::Increased;
         let mut aggregate = TestAggregate(0);
         event.apply_to(&mut aggregate);
-        assert_eq!(aggregate.0, 1);
+        assert_eq!(aggregate, TestAggregate(1));
     }
 
     #[test]
     fn command() {
         let command = TestCommand::Increase;
         let aggregate = TestAggregate(0);
-        if let Ok(Some(got)) = command.execute_on(&aggregate) {
-            assert_eq!(got, TestEvent::Increased);
-        } else {
-            assert!(false)
-        }
+        let got = command.execute_on(&aggregate);
+        assert_eq!(got, Ok(Some(TestEvent::Increased)));
     }
 }

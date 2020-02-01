@@ -1,7 +1,7 @@
-use crate::{Aggregate, Id};
 use crate::store::{EventStorage, EventStorageError};
-use std::collections::HashMap;
+use crate::{Aggregate, Id};
 use failure::Fail;
+use std::collections::HashMap;
 
 pub struct OnmemoryStorage<A: Aggregate> {
     events: HashMap<Id<A>, Vec<A::Event>>,

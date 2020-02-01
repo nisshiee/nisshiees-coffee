@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TestAggregate(pub u64);
 
 impl Default for TestAggregate {
@@ -9,7 +9,7 @@ impl Default for TestAggregate {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum TestEvent {
     Increased,
 }
@@ -24,7 +24,7 @@ pub enum TestCommand {
     Increase,
 }
 
-#[derive(Fail, Debug)]
+#[derive(Fail, Debug, Eq, PartialEq)]
 #[fail(display = "unknown")]
 pub struct TestCommandError {}
 
