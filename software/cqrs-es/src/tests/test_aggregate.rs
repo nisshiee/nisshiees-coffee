@@ -22,11 +22,14 @@ impl Event<TestAggregate> for TestEvent {
 
 pub enum TestCommand {
     Increase,
+    Invalid,
 }
 
 #[derive(Fail, Debug, Eq, PartialEq)]
-#[fail(display = "unknown")]
-pub struct TestCommandError {}
+pub enum TestCommandError {
+    #[fail(display = "Invalid")]
+    Invalid,
+}
 
 impl CommandError for TestCommandError {}
 
@@ -35,7 +38,10 @@ impl Command<TestAggregate> for TestCommand {
     type Error = TestCommandError;
 
     fn execute_on(self, _aggregate: &TestAggregate) -> Result<Self::Events, Self::Error> {
-        Ok(Some(TestEvent::Increased))
+        match self {
+            TestCommand::Increase => Ok(Some(TestEvent::Increased)),
+            TestCommand::Invalid => Err(TestCommandError::Invalid),
+        }
     }
 }
 

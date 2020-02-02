@@ -14,21 +14,12 @@ use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use uuid::Uuid;
 
-pub trait Aggregate: Default {
+pub trait Aggregate: Default + Clone {
     type Event: Event<Self>;
     type Command: Command<Self>;
 
     // `/` で区切ることで階層化することを想定
     fn type_name() -> &'static str;
-}
-
-#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
-pub struct Version(u64);
-
-#[derive(Debug)]
-pub struct VersionedAggregate<A: Aggregate> {
-    version: Version,
-    aggregate: A,
 }
 
 pub struct Id<A: Aggregate> {
@@ -98,7 +89,6 @@ pub trait Projector<A: Aggregate>: Debug {
 
 #[cfg(test)]
 mod tests {
-    pub mod onmemory_storage;
     pub mod test_aggregate;
 
     use crate::*;
