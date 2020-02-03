@@ -94,10 +94,11 @@ pub trait EventStorage<A: Aggregate> {
 
         let events = command.execute_on(&aggregate.aggregate);
         let events = events.map_err(|e| ExecuteCommandError::Command(e))?;
-        //
-        //        let ret = events.into_iter().try_for_each(|e| self.insert(id, e));
-        //        ret.map_err(|e| ExecuteCommandError::Storage(e))
-        unimplemented!()
+
+        events
+            .into_iter()
+            .try_for_each(|e| self.insert(id, e))
+            .map_err(|e| ExecuteCommandError::Insert(e))
     }
 }
 
@@ -180,46 +181,41 @@ mod tests {
     #[rustfmt::skip]
     mock_trait_no_default!(
         MockEventStorage2,
-        replay_aggregate(Id<TestAggregate>) -> Result<VersionedAggregate<TestAggregate>, ReplayAggregateError<MockStorageError>>
+        replay_aggregate(Id<TestAggregate>) -> Result<VersionedAggregate<TestAggregate>, ReplayAggregateError<MockStorageError>>,
+        insert(Id<TestAggregate>, TestEvent) -> Result<(), MockStorageError>
     );
 
     impl EventStorage<TestAggregate> for MockEventStorage2 {
         type Events = Vec<VersionedEvent<TestAggregate>>;
         type Error = MockStorageError;
 
-        fn insert(
-            &mut self,
-            id: Id<TestAggregate>,
-            event: <TestAggregate as Aggregate>::Event,
-        ) -> Result<(), Self::Error> {
-            unimplemented!()
-        }
-
         fn read(&self, id: Id<TestAggregate>) -> Result<Self::Events, Self::Error> {
             unimplemented!()
         }
-
         mock_method!(replay_aggregate(&self, id: Id<TestAggregate>) -> Result<VersionedAggregate<TestAggregate>, ReplayAggregateError<Self::Error>>);
+        mock_method!(insert(&mut self, id: Id<TestAggregate>, event: TestEvent) -> Result<(), Self::Error>);
     }
 
     #[test]
     fn execute_command() {
-        unimplemented!()
-        //        let mut storage = MockEventStorage1::new(Ok(None), Ok(()));
-        //        let id = Id::new();
-        //        let cmd = TestCommand::Increase;
-        //        let got = storage.execute_command(id, cmd);
-        //        assert!(got.is_ok());
-        //        assert!(storage.read.has_calls_exactly(vec![id]));
-        //        assert!(storage
-        //            .insert
-        //            .has_calls_exactly(vec![(id, TestEvent::Increased)]));
+        let mut storage = MockEventStorage2::new(
+            Ok(VersionedAggregate {
+                version: Version(1),
+                aggregate: TestAggregate(1),
+            }),
+            Ok(()),
+        );
+        let id = Id::new();
+        let cmd = TestCommand::Increase;
+
+        let got = storage.execute_command(id, cmd);
+        assert_eq!(got, Ok(()))
     }
 
     #[test]
     fn execute_command_replay_aggregate_error() {
         let replay_aggregate_error = ReplayAggregateError::VersionInconsistent;
-        let mut storage = MockEventStorage2::new(Err(replay_aggregate_error.clone()));
+        let mut storage = MockEventStorage2::new(Err(replay_aggregate_error.clone()), Ok(()));
         let id = Id::new();
         let cmd = TestCommand::Increase;
 
@@ -233,10 +229,13 @@ mod tests {
     #[test]
     fn execute_command_command_error() {
         let command_error = TestCommandError::Invalid;
-        let mut storage = MockEventStorage2::new(Ok(VersionedAggregate {
-            version: Version(1),
-            aggregate: TestAggregate(1),
-        }));
+        let mut storage = MockEventStorage2::new(
+            Ok(VersionedAggregate {
+                version: Version(1),
+                aggregate: TestAggregate(1),
+            }),
+            Ok(()),
+        );
         let id = Id::new();
         let cmd = TestCommand::Invalid;
 
@@ -245,5 +244,23 @@ mod tests {
         } else {
             panic!();
         };
+    }
+
+    #[test]
+    fn execute_command_insert_error() {
+        let storage_error = MockStorageError {};
+        let mut storage = MockEventStorage2::new(
+            Ok(VersionedAggregate {
+                version: Version(1),
+                aggregate: TestAggregate(1),
+            }),
+            Err(storage_error.clone()),
+        );
+        let id = Id::new();
+        let cmd = TestCommand::Increase;
+
+        if let Err(ExecuteCommandError::Insert(e)) = storage.execute_command(id, cmd) {
+            assert_eq!(e, storage_error);
+        }
     }
 }
