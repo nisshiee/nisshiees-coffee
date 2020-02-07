@@ -2,8 +2,7 @@ extern crate failure;
 extern crate uuid;
 
 #[cfg(test)]
-#[macro_use]
-extern crate double;
+extern crate simulacrum;
 
 pub mod store;
 

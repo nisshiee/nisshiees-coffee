@@ -109,53 +109,63 @@ mod tests {
     use crate::tests::test_aggregate::*;
     use crate::*;
 
+    use simulacrum::*;
+
     #[derive(Fail, Debug, Clone, Eq, PartialEq)]
     #[fail(display = "unexpected")]
     pub struct MockStorageError {}
 
     impl EventStorageError for MockStorageError {}
 
-    #[rustfmt::skip]
-    mock_trait_no_default!(
-        MockEventStorage1,
-        read(Id<TestAggregate>) -> Result<Vec<VersionedEvent<TestAggregate>>, MockStorageError>
-    );
+    create_mock_struct! {
+        struct MockEventStorage1: {
+            expect_read("read") Id<TestAggregate> => Result<Vec<VersionedEvent<TestAggregate>>, MockStorageError>;
+        }
+    }
 
     impl EventStorage<TestAggregate> for MockEventStorage1 {
         type Events = Vec<VersionedEvent<TestAggregate>>;
         type Error = MockStorageError;
 
-        fn insert(&mut self, id: Id<TestAggregate>, event: TestEvent) -> Result<(), Self::Error> {
+        fn insert(&mut self, _id: Id<TestAggregate>, _event: TestEvent) -> Result<(), Self::Error> {
             unimplemented!()
         }
 
-        mock_method!(read(&self, id: Id<TestAggregate>) -> Result<Self::Events, Self::Error>);
+        fn read(&self, id: Id<TestAggregate>) -> Result<Self::Events, Self::Error> {
+            was_called!(self, "read", (id: Id<TestAggregate>) -> Result<Self::Events, Self::Error>)
+        }
     }
 
     #[test]
     fn replay_aggregate() {
-        let read = Ok(vec![
-            VersionedEvent {
-                version: Version(1),
-                event: TestEvent::Increased,
-            },
-            VersionedEvent {
-                version: Version(2),
-                event: TestEvent::Increased,
-            },
-        ]);
-        let storage = MockEventStorage1::new(read);
+        let mut storage = MockEventStorage1::new();
+        storage.expect_read().called_once().returning(|_| {
+            Ok(vec![
+                VersionedEvent {
+                    version: Version(1),
+                    event: TestEvent::Increased,
+                },
+                VersionedEvent {
+                    version: Version(2),
+                    event: TestEvent::Increased,
+                },
+            ])
+        });
 
         let id = Id::new();
         let got = storage.replay_aggregate(id);
 
         assert!(got.is_ok());
-        assert!(storage.read.has_calls_exactly(vec![id]));
     }
 
     #[test]
     fn replay_aggregate_event_storage_error() {
-        let storage = MockEventStorage1::new(Err(MockStorageError {}));
+        let mut storage = MockEventStorage1::new();
+        storage
+            .expect_read()
+            .called_once()
+            .returning(|_| Err(MockStorageError {}));
+
         let id = Id::new();
         if let Err(ReplayAggregateError::EventStorage(_)) = storage.replay_aggregate(id) {
         } else {
@@ -165,11 +175,13 @@ mod tests {
 
     #[test]
     fn replay_aggregate_version_inconsistent() {
-        let read = Ok(vec![VersionedEvent {
-            version: Version(99),
-            event: TestEvent::Increased,
-        }]);
-        let storage = MockEventStorage1::new(read);
+        let mut storage = MockEventStorage1::new();
+        storage.expect_read().called_once().returning(|_| {
+            Ok(vec![VersionedEvent {
+                version: Version(99),
+                event: TestEvent::Increased,
+            }])
+        });
 
         let id = Id::new();
         if let Err(ReplayAggregateError::VersionInconsistent) = storage.replay_aggregate(id) {
@@ -178,33 +190,53 @@ mod tests {
         }
     }
 
-    #[rustfmt::skip]
-    mock_trait_no_default!(
-        MockEventStorage2,
-        replay_aggregate(Id<TestAggregate>) -> Result<VersionedAggregate<TestAggregate>, ReplayAggregateError<MockStorageError>>,
-        insert(Id<TestAggregate>, TestEvent) -> Result<(), MockStorageError>
-    );
+    create_mock_struct! {
+        struct MockEventStorage22: {
+            expect_replay_aggregate("replay_aggregate") Id<TestAggregate> => Result<VersionedAggregate<TestAggregate>, ReplayAggregateError<MockStorageError>>;
+            expect_insert("insert") (Id<TestAggregate>, TestEvent) => Result<(), MockStorageError>;
+        }
+    }
 
-    impl EventStorage<TestAggregate> for MockEventStorage2 {
+    impl EventStorage<TestAggregate> for MockEventStorage22 {
         type Events = Vec<VersionedEvent<TestAggregate>>;
         type Error = MockStorageError;
 
-        fn read(&self, id: Id<TestAggregate>) -> Result<Self::Events, Self::Error> {
+        fn insert(&mut self, id: Id<TestAggregate>, event: TestEvent) -> Result<(), Self::Error> {
+            was_called!(self, "insert", (id: Id<TestAggregate>, event: TestEvent) -> Result<(), MockStorageError>)
+        }
+
+        fn read(&self, _id: Id<TestAggregate>) -> Result<Self::Events, Self::Error> {
             unimplemented!()
         }
-        mock_method!(replay_aggregate(&self, id: Id<TestAggregate>) -> Result<VersionedAggregate<TestAggregate>, ReplayAggregateError<Self::Error>>);
-        mock_method!(insert(&mut self, id: Id<TestAggregate>, event: TestEvent) -> Result<(), Self::Error>);
+
+        fn replay_aggregate(
+            &self,
+            id: Id<TestAggregate>,
+        ) -> Result<VersionedAggregate<TestAggregate>, ReplayAggregateError<MockStorageError>>
+        {
+            was_called!(
+                self,
+                "replay_aggregate",
+                (id: Id<TestAggregate>) ->
+                    Result<VersionedAggregate<TestAggregate>, ReplayAggregateError<MockStorageError>>
+            )
+        }
     }
 
     #[test]
     fn execute_command() {
-        let mut storage = MockEventStorage2::new(
-            Ok(VersionedAggregate {
-                version: Version(1),
-                aggregate: TestAggregate(1),
-            }),
-            Ok(()),
-        );
+        let mut storage = MockEventStorage22::new();
+        storage
+            .expect_replay_aggregate()
+            .called_once()
+            .returning(|_| {
+                Ok(VersionedAggregate {
+                    version: Version(1),
+                    aggregate: TestAggregate(1),
+                })
+            });
+        storage.expect_insert().called_once().returning(|_| Ok(()));
+
         let id = Id::new();
         let cmd = TestCommand::Increase;
 
@@ -214,13 +246,17 @@ mod tests {
 
     #[test]
     fn execute_command_replay_aggregate_error() {
-        let replay_aggregate_error = ReplayAggregateError::VersionInconsistent;
-        let mut storage = MockEventStorage2::new(Err(replay_aggregate_error.clone()), Ok(()));
+        let mut storage = MockEventStorage22::new();
+        storage
+            .expect_replay_aggregate()
+            .called_once()
+            .returning(|_| Err(ReplayAggregateError::VersionInconsistent));
+
         let id = Id::new();
         let cmd = TestCommand::Increase;
 
         if let Err(ExecuteCommandError::ReplayAggregate(e)) = storage.execute_command(id, cmd) {
-            assert_eq!(e, replay_aggregate_error);
+            assert_eq!(e, ReplayAggregateError::VersionInconsistent);
         } else {
             panic!();
         };
@@ -228,19 +264,22 @@ mod tests {
 
     #[test]
     fn execute_command_command_error() {
-        let command_error = TestCommandError::Invalid;
-        let mut storage = MockEventStorage2::new(
-            Ok(VersionedAggregate {
-                version: Version(1),
-                aggregate: TestAggregate(1),
-            }),
-            Ok(()),
-        );
+        let mut storage = MockEventStorage22::new();
+        storage
+            .expect_replay_aggregate()
+            .called_once()
+            .returning(|_| {
+                Ok(VersionedAggregate {
+                    version: Version(1),
+                    aggregate: TestAggregate(1),
+                })
+            });
+
         let id = Id::new();
         let cmd = TestCommand::Invalid;
 
         if let Err(ExecuteCommandError::Command(e)) = storage.execute_command(id, cmd) {
-            assert_eq!(e, command_error);
+            assert_eq!(e, TestCommandError::Invalid);
         } else {
             panic!();
         };
@@ -248,19 +287,28 @@ mod tests {
 
     #[test]
     fn execute_command_insert_error() {
-        let storage_error = MockStorageError {};
-        let mut storage = MockEventStorage2::new(
-            Ok(VersionedAggregate {
-                version: Version(1),
-                aggregate: TestAggregate(1),
-            }),
-            Err(storage_error.clone()),
-        );
+        let mut storage = MockEventStorage22::new();
+        storage
+            .expect_replay_aggregate()
+            .called_once()
+            .returning(|_| {
+                Ok(VersionedAggregate {
+                    version: Version(1),
+                    aggregate: TestAggregate(1),
+                })
+            });
+        storage
+            .expect_insert()
+            .called_once()
+            .returning(|_| Err(MockStorageError {}));
+
         let id = Id::new();
         let cmd = TestCommand::Increase;
 
         if let Err(ExecuteCommandError::Insert(e)) = storage.execute_command(id, cmd) {
-            assert_eq!(e, storage_error);
+            assert_eq!(e, MockStorageError {});
+        } else {
+            panic!();
         }
     }
 }
