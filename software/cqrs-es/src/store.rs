@@ -24,7 +24,7 @@ pub struct VersionedEvent<A: Aggregate> {
 
 pub trait EventStorageError: Fail {}
 
-#[derive(Fail, Debug, Clone, Eq, PartialEq)]
+#[derive(Fail, Debug, Eq, PartialEq)]
 pub enum ReplayAggregateError<E: EventStorageError> {
     #[fail(display = "Storage error: {}", _0)]
     EventStorage(#[fail(cause)] E),
@@ -111,7 +111,7 @@ mod tests {
 
     use simulacrum::*;
 
-    #[derive(Fail, Debug, Clone, Eq, PartialEq)]
+    #[derive(Fail, Debug, Eq, PartialEq)]
     #[fail(display = "unexpected")]
     pub struct MockStorageError {}
 
