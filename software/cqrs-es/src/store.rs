@@ -39,14 +39,14 @@ pub trait EventStorageError: Fail {}
 #[derive(Fail, Debug, Eq, PartialEq)]
 pub enum ReplayAggregateError<E: EventStorageError> {
     #[fail(display = "Storage error: {}", _0)]
-    EventStorage(#[fail(cause)] E),
+    Read(#[fail(cause)] E),
     #[fail(display = "Version inconsistent")]
     VersionInconsistent,
 }
 
 impl<E: EventStorageError> From<E> for ReplayAggregateError<E> {
     fn from(e: E) -> Self {
-        ReplayAggregateError::EventStorage(e)
+        ReplayAggregateError::Read(e)
     }
 }
 
@@ -103,10 +103,16 @@ pub trait EventStorage<A: Aggregate> {
         A: Aggregate<Command = C>,
     {
         let aggregate = self.replay_aggregate(id)?;
+        let mut next_version = aggregate.version.next();
 
         let events = command.execute_on(&aggregate.aggregate);
         let events = events.map_err(|e| ExecuteCommandError::Command(e))?;
-        let events = events.into_iter().map(|e| VersionedEvent{ version: Default::default(), event: e });
+        let events = events.into_iter().map(|e| {
+            let version = next_version;
+            next_version = version.next();
+
+            VersionedEvent { version, event: e }
+        });
 
         events
             .into_iter()
@@ -140,7 +146,11 @@ mod tests {
         type Events = Vec<VersionedEvent<TestAggregate>>;
         type Error = MockStorageError;
 
-        fn insert(&mut self, _id: Id<TestAggregate>, _event: VersionedEvent<TestAggregate>) -> Result<(), Self::Error> {
+        fn insert(
+            &mut self,
+            _id: Id<TestAggregate>,
+            _event: VersionedEvent<TestAggregate>,
+        ) -> Result<(), Self::Error> {
             unimplemented!()
         }
 
@@ -180,7 +190,7 @@ mod tests {
             .returning(|_| Err(MockStorageError {}));
 
         let id = Id::new();
-        if let Err(ReplayAggregateError::EventStorage(_)) = storage.replay_aggregate(id) {
+        if let Err(ReplayAggregateError::Read(_)) = storage.replay_aggregate(id) {
         } else {
             panic!();
         }
@@ -214,7 +224,11 @@ mod tests {
         type Events = Vec<VersionedEvent<TestAggregate>>;
         type Error = MockStorageError;
 
-        fn insert(&mut self, id: Id<TestAggregate>, event: VersionedEvent<TestAggregate>) -> Result<(), Self::Error> {
+        fn insert(
+            &mut self,
+            id: Id<TestAggregate>,
+            event: VersionedEvent<TestAggregate>,
+        ) -> Result<(), Self::Error> {
             was_called!(self, "insert", (id: Id<TestAggregate>, event: VersionedEvent<TestAggregate>) -> Result<(), MockStorageError>)
         }
 
@@ -248,8 +262,15 @@ mod tests {
                     aggregate: TestAggregate(1),
                 })
             });
-        storage.expect_insert().called_once().returning(|_| Ok(()));
-        unimplemented!("想定したVersionがセットされてinsertが呼ばれていることを確認");
+        let version_check =
+            passes::<(Id<TestAggregate>, VersionedEvent<TestAggregate>), _>(|event| {
+                event.1.version.is_next_of(&Version(1))
+            });
+        storage
+            .expect_insert()
+            .called_once()
+            .with(version_check)
+            .returning(|_| Ok(()));
 
         let id = Id::new();
         let cmd = TestCommand::Increase;
