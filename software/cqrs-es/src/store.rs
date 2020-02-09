@@ -1,38 +1,6 @@
-use crate::{Aggregate, Command, CommandError, Event, Id};
+use crate::version::*;
+use crate::*;
 use failure::Fail;
-
-/// # Examples
-///
-/// ```
-/// use cqrs_es::store::Version;
-/// let current = Version::default();
-/// let next = current.next();
-/// assert!(next.is_next_of(&current));
-/// ```
-#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Default)]
-pub struct Version(u64);
-
-impl Version {
-    pub fn is_next_of(&self, other: &Version) -> bool {
-        self.0 == other.0 + 1
-    }
-
-    pub fn next(&self) -> Version {
-        Version(self.0 + 1)
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct VersionedAggregate<A: Aggregate> {
-    version: Version,
-    aggregate: A,
-}
-
-#[derive(Debug, Clone)]
-pub struct VersionedEvent<A: Aggregate> {
-    version: Version,
-    event: A::Event,
-}
 
 pub trait EventStorageError: Fail {}
 
@@ -123,10 +91,8 @@ pub trait EventStorage<A: Aggregate> {
 
 #[cfg(test)]
 mod tests {
-    use crate::store::ExecuteCommandError;
     use crate::store::*;
     use crate::tests::test_aggregate::*;
-    use crate::*;
 
     use simulacrum::*;
 

@@ -4,7 +4,9 @@ extern crate uuid;
 #[cfg(test)]
 extern crate simulacrum;
 
+pub mod projector;
 pub mod store;
+pub mod version;
 
 use failure::Fail;
 use failure::_core::fmt::{Error, Formatter};
@@ -80,10 +82,6 @@ pub trait Command<A: Aggregate> {
     type Error: CommandError;
 
     fn execute_on(self, aggregate: &A) -> Result<Self::Events, Self::Error>;
-}
-
-pub trait Projector<A: Aggregate>: Debug {
-    fn project(&mut self, id: Id<A>, event: &A::Event);
 }
 
 #[cfg(test)]
