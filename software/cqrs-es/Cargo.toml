@@ -10,6 +10,8 @@ edition = "2018"
 failure = "0.1.6"
 failure_derive = "0.1.6"
 uuid = { version = "0.8.1", features = ["serde", "v4"] }
+serde = { version = "1.0.104", features = ["derive"] }
 
 [dev-dependencies]
 simulacrum = "0.3.1"
+serde_json = "1.0.45"

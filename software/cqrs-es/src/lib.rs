@@ -1,6 +1,9 @@
 extern crate failure;
+extern crate serde;
 extern crate uuid;
 
+#[cfg(test)]
+extern crate serde_json;
 #[cfg(test)]
 extern crate simulacrum;
 

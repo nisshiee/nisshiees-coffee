@@ -1,6 +1,7 @@
 use crate::*;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TestAggregate(pub u64);
 
 impl Default for TestAggregate {
@@ -9,7 +10,7 @@ impl Default for TestAggregate {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum TestEvent {
     Increased,
 }
