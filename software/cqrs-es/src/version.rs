@@ -188,7 +188,8 @@ where
     let mut version = None;
     let mut base = None;
 
-    while let Some(key) = map.next_key::<&str>()? {
+    // TODO: &strじゃむり・・・？
+    while let Some(key) = map.next_key::<String>()? {
         if key == SERIALIZE_KEY_VERSION {
             if version.is_some() {
                 return Err(serde::de::Error::duplicate_field(SERIALIZE_KEY_VERSION));
