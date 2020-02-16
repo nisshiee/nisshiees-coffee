@@ -1,5 +1,7 @@
-use crate::*;
+use failure::Fail;
 use serde::{Deserialize, Serialize};
+
+use crate::*;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TestAggregate(pub u64);

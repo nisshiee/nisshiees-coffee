@@ -13,8 +13,8 @@ use cqrs_es::store::*;
 use cqrs_es::version::*;
 use cqrs_es::*;
 use failure::_core::marker::PhantomData;
-use serde::{Serialize, Deserialize};
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use serde_json::Deserializer;
 
 pub struct FileEventStorage<A, E>
@@ -132,11 +132,13 @@ where
 
         let file = fs::File::open(&file_path)?;
         let file = io::BufReader::new(file);
-        Deserializer::from_reader(file).into_iter().try_fold(Vec::new(), |mut a, e| {
-            let event = e?;
-            a.push(event);
-            Ok(a)
-        })
+        Deserializer::from_reader(file)
+            .into_iter()
+            .try_fold(Vec::new(), |mut a, e| {
+                let event = e?;
+                a.push(event);
+                Ok(a)
+            })
     }
 
     //    fn insert(&mut self, id: A::Id, event: A::Event) -> Result<(), Self::Error> {
@@ -189,23 +191,39 @@ mod tests {
     use cqrs_es::*;
     use test_aggregate::*;
 
-//    #[derive(Debug)]
-//    struct TestProjector();
-//
-//    impl Projector<TestAggregate> for TestProjector {
-//        fn project(&mut self, _id: TestAggregateId, event: &TestEvent) {
-//            println!("{:?}", event);
-//        }
-//    }
+    //    #[derive(Debug)]
+    //    struct TestProjector();
+    //
+    //    impl Projector<TestAggregate> for TestProjector {
+    //        fn project(&mut self, _id: TestAggregateId, event: &TestEvent) {
+    //            println!("{:?}", event);
+    //        }
+    //    }
 
     #[test]
     fn it_works() {
         let mut storage = FileEventStorage::<TestAggregate, TestEvent>::new("test").unwrap();
-//        let mut projector = TestProjector();
-//        storage.add_projector(&mut projector);
+        //        let mut projector = TestProjector();
+        //        storage.add_projector(&mut projector);
         let id = Id::<TestAggregate>::new();
-        storage.insert(id, VersionedEvent{ version: Version(1), event: TestEvent::Increased }).unwrap();
-        storage.insert(id, VersionedEvent{ version: Version(2), event: TestEvent::Increased }).unwrap();
+        storage
+            .insert(
+                id,
+                VersionedEvent {
+                    version: Version(1),
+                    event: TestEvent::Increased,
+                },
+            )
+            .unwrap();
+        storage
+            .insert(
+                id,
+                VersionedEvent {
+                    version: Version(2),
+                    event: TestEvent::Increased,
+                },
+            )
+            .unwrap();
 
         let events = storage.read(id).unwrap();
         println!("{:?}", events);
