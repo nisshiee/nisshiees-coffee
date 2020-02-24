@@ -20,6 +20,15 @@ impl<A: Aggregate> Id<A> {
     }
 }
 
+impl<A: Aggregate> From<Uuid> for Id<A> {
+    fn from(id: Uuid) -> Self {
+        Id {
+            id,
+            phantom: PhantomData
+        }
+    }
+}
+
 impl<A: Aggregate> PartialEq for Id<A> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id

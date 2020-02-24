@@ -1,8 +1,8 @@
-use cqrs_es::{Aggregate, AggregateId, Command, CommandError, Event};
+use cqrs_es::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CanisterListAggregate {
     Uninitialized,
     Created { canisters: Vec<Canister> },
@@ -35,7 +35,6 @@ pub enum Name {
 }
 
 impl Aggregate for CanisterListAggregate {
-    type Id = CanisterListAggregateId;
     type Event = CanisterListEvent;
     type Command = CanisterListCommand;
 
@@ -43,17 +42,6 @@ impl Aggregate for CanisterListAggregate {
         "canister_list"
     }
 }
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub struct CanisterListAggregateId(pub Uuid);
-
-impl ToString for CanisterListAggregateId {
-    fn to_string(&self) -> String {
-        self.0.to_string()
-    }
-}
-
-impl AggregateId<CanisterListAggregate> for CanisterListAggregateId {}
 
 impl Default for CanisterListAggregate {
     fn default() -> Self {

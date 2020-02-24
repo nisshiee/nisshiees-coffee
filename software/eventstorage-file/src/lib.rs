@@ -6,21 +6,20 @@ extern crate serde_json;
 
 use std::fs;
 use std::io;
-use std::io::{BufRead, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use cqrs_es::store::*;
-use cqrs_es::version::*;
 use cqrs_es::*;
 use failure::_core::marker::PhantomData;
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::Deserializer;
 
 pub struct FileEventStorage<A, E>
 where
-    A: Aggregate<Event = E> + Serialize,
-    E: Event<A> + Serialize,
+    A: Aggregate<Event = E> + Serialize + DeserializeOwned,
+    E: Event<A> + Serialize + DeserializeOwned,
 {
     dir: PathBuf,
     phantom: PhantomData<A>,
@@ -29,8 +28,8 @@ where
 
 impl<A, E> FileEventStorage<A, E>
 where
-    A: Aggregate<Event = E> + Serialize,
-    E: Event<A> + Serialize,
+    A: Aggregate<Event = E> + Serialize + DeserializeOwned,
+    E: Event<A> + Serialize + DeserializeOwned,
 {
     pub fn new<P>(root_path: P) -> Result<Self, io::Error>
     where

@@ -1,8 +1,9 @@
-use crate::context::Context;
-use cqrs_es::EventStorage;
+use cqrs_es::store::EventStorage;
 use nisshiees_coffee_core::seller::stock;
 use nisshiees_coffee_core::{Brand, Roast};
 use structopt::StructOpt;
+
+use crate::context::Context;
 
 #[derive(Debug, StructOpt)]
 pub enum StockCommands {
@@ -53,6 +54,7 @@ impl StockCommands {
                     .seller_stock_storage
                     .replay_aggregate(ctx.default_seller_stock_id)
                     .unwrap();
+                let agg = agg.aggregate;
                 if let stock::StockAggregate::Created { packs } = agg {
                     packs.iter().for_each(|p| println!("{:?}", p));
                 }

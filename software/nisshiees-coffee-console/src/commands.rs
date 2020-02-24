@@ -1,10 +1,11 @@
-use crate::commands::canister::CanisterCommands;
-use crate::commands::seller::SellerCommands;
-use crate::Context;
-use cqrs_es::EventStorage;
+use cqrs_es::store::EventStorage;
 use nisshiees_coffee_core::canister_list;
 use nisshiees_coffee_core::seller::stock;
 use structopt::StructOpt;
+
+use crate::commands::canister::CanisterCommands;
+use crate::commands::seller::SellerCommands;
+use crate::Context;
 
 mod canister;
 mod seller;

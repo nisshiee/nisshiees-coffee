@@ -1,9 +1,10 @@
-use crate::context::Context;
-use cqrs_es::EventStorage;
+use cqrs_es::store::EventStorage;
 use nisshiees_coffee_core::canister_list;
 use std::str::FromStr;
 use structopt::StructOpt;
 use uuid::Uuid;
+
+use crate::context::Context;
 
 #[derive(Debug, StructOpt)]
 pub enum CanisterCommands {
@@ -98,6 +99,7 @@ impl CanisterCommands {
                     .canister_list_storage
                     .replay_aggregate(ctx.default_canister_list_id)
                     .unwrap();
+                let agg = agg.aggregate;
                 if let canister_list::CanisterListAggregate::Created { canisters } = agg {
                     canisters.into_iter().for_each(|c| println!("{:?}", c))
                 }

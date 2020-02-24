@@ -1,9 +1,9 @@
-use crate::{Brand, Roast};
-use cqrs_es::{Aggregate, AggregateId, Command, CommandError, Event};
+use cqrs_es::*;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
-#[derive(Debug, Clone)]
+use crate::{Brand, Roast};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum StockAggregate {
     Uninitialized,
     Created { packs: Vec<Pack> },
@@ -35,7 +35,6 @@ impl Default for StockAggregate {
 }
 
 impl Aggregate for StockAggregate {
-    type Id = StockAggregateId;
     type Event = StockEvent;
     type Command = StockCommand;
 
@@ -43,17 +42,6 @@ impl Aggregate for StockAggregate {
         "seller/stock"
     }
 }
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub struct StockAggregateId(pub Uuid);
-
-impl ToString for StockAggregateId {
-    fn to_string(&self) -> String {
-        self.0.to_string()
-    }
-}
-
-impl AggregateId<StockAggregate> for StockAggregateId {}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum StockEvent {
