@@ -24,7 +24,7 @@ impl<A: Aggregate> From<Uuid> for Id<A> {
     fn from(id: Uuid) -> Self {
         Id {
             id,
-            phantom: PhantomData
+            phantom: PhantomData,
         }
     }
 }

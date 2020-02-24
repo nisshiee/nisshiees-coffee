@@ -1,5 +1,35 @@
-use cqrs_es::*;
+use std::fs;
+use std::path::PathBuf;
+
+use failure::Fail;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+use cqrs_es::*;
+
+pub struct TestContext {
+    dir: PathBuf,
+}
+
+impl TestContext {
+    pub fn new() -> TestContext {
+        let mut dir = PathBuf::new();
+        dir.push("target");
+        dir.push("tests");
+        dir.push(Uuid::new_v4().to_string());
+        TestContext { dir }
+    }
+
+    pub fn dir(&self) -> PathBuf {
+        self.dir.clone()
+    }
+}
+
+impl Drop for TestContext {
+    fn drop(&mut self) {
+        fs::remove_dir_all(self.dir.as_path()).unwrap();
+    }
+}
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TestAggregate(pub u64);
@@ -21,15 +51,12 @@ impl Event<TestAggregate> for TestEvent {
     }
 }
 
-pub enum TestCommand {
-    Increase,
-    Invalid,
-}
+pub struct TestCommand {}
 
 #[derive(Fail, Debug, Eq, PartialEq)]
-pub enum TestCommandError {
-    #[fail(display = "Invalid")]
-    Invalid,
+#[fail(display = "Invalid")]
+pub struct TestCommandError {
+    // Invalid,
 }
 
 impl CommandError for TestCommandError {}
@@ -39,10 +66,7 @@ impl Command<TestAggregate> for TestCommand {
     type Error = TestCommandError;
 
     fn execute_on(self, _aggregate: &TestAggregate) -> Result<Self::Events, Self::Error> {
-        match self {
-            TestCommand::Increase => Ok(Some(TestEvent::Increased)),
-            TestCommand::Invalid => Err(TestCommandError::Invalid),
-        }
+        Ok(Some(TestEvent::Increased))
     }
 }
 
