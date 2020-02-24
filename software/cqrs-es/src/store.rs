@@ -24,6 +24,10 @@ pub trait EventStorage<A: Aggregate> {
 
     fn read(&self, id: Id<A>) -> Result<Self::Events, Self::Error>;
 
+    fn project(&self, id: Id<A>, event: VersionedEvent<A>, snapshot: VersionedAggregate<A>) -> Result<(), Self::Error> {
+        // default noop
+    }
+
     fn replay_aggregate(
         &self,
         id: Id<A>,

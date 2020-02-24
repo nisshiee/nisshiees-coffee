@@ -9,6 +9,7 @@ use std::io;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+use cqrs_es::projector::*;
 use cqrs_es::store::*;
 use cqrs_es::*;
 use failure::_core::marker::PhantomData;
@@ -16,17 +17,17 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::Deserializer;
 
-pub struct FileEventStorage<A, E>
+pub struct FileEventStorage<'a, A, E>
 where
     A: Aggregate<Event = E> + Serialize + DeserializeOwned,
     E: Event<A> + Serialize + DeserializeOwned,
 {
     dir: PathBuf,
     phantom: PhantomData<A>,
-    //    projectors: Vec<&'a mut dyn Projector<A>>,
+    projectors: Vec<&'a mut dyn Projector<A>>,
 }
 
-impl<A, E> FileEventStorage<A, E>
+impl<'a, A, E> FileEventStorage<'a, A, E>
 where
     A: Aggregate<Event = E> + Serialize + DeserializeOwned,
     E: Event<A> + Serialize + DeserializeOwned,
@@ -47,7 +48,7 @@ where
         Ok(FileEventStorage {
             dir: aggregate_dir,
             phantom: PhantomData,
-            //            projectors: Vec::new(),
+            projectors: Vec::new(),
         })
     }
 
@@ -56,13 +57,14 @@ where
         file_path.push(id.to_string());
         file_path
     }
-}
 
-//impl<'a, A: Aggregate> FileEventStorage<'a, A> {
-//    pub fn add_projector<P: Projector<A>>(&mut self, projector: &'a mut P) {
-//        self.projectors.push(projector)
-//    }
-//}
+    pub fn add_projector<P>(&mut self, projector: &'a mut P)
+    where
+        P: Projector<A>,
+    {
+        self.projectors.push(projector)
+    }
+}
 
 #[derive(Fail, Debug)]
 pub enum FileEventStorageError {
@@ -90,7 +92,7 @@ impl From<serde_json::Error> for FileEventStorageError {
     }
 }
 
-impl<A, E> EventStorage<A> for FileEventStorage<A, E>
+impl<'a, A, E> EventStorage<A> for FileEventStorage<'a, A, E>
 where
     A: Aggregate<Event = E> + Serialize + DeserializeOwned,
     E: Event<A> + Serialize + DeserializeOwned,
